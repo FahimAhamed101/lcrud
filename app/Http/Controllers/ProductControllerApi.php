@@ -14,14 +14,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 
-class ProductController extends Controller
+class ProductControllerApi extends Controller
 {
-    public function index(){
-       
-        $products = Product::latest()->get();
-        return view('index',compact('products'));
-
-    } // End Index Method
+    
     public function indexapi()
     {
         $customers = Product::all();
@@ -45,11 +40,8 @@ class ProductController extends Controller
        
         return view('add');
     } // End Method
-
-
-
-
-    public function Store(Request $request){
+    public function storeapi(Request $request)
+    {
         $image = $request->file('product_thumbnail');
         $manager = new ImageManager(new Driver());
         $name_gen = hexdec(uniqid()).'.'.$image->getClientOriginalExtension();
@@ -62,6 +54,42 @@ class ProductController extends Controller
          
             'product_name' => $request->product_name,
             'product_thumbnail' => $uploadPath,
+            'long_disc' => $request->long_disc,
+            
+            'created_at' => Carbon::now(),
+        ]);
+        // Multiple Image Uploaded -----------------------------------------------------
+        $images = $request->file('multi_img');
+        foreach ($images as $img) {
+            $manager = new ImageManager(new Driver());
+            $make_name = hexdec(uniqid()).'.'.$img->getClientOriginalExtension();
+
+            $img=$manager->read($img);
+            $img= $img->resize(1100,1100);
+            
+            $uploadPath = 'media/multiImage/'.$make_name;
+            $img-> toJpeg(88)->save($uploadPath);
+            MultiImage::insert([
+                'product_id' => $product_id,
+                'photo_name' => $uploadPath,
+                'created_at' => Carbon::now(),
+            ]);
+        }
+        
+        
+        
+        return response()->json([
+            'status' => true,
+            'message' => 'Customer created successfully',
+            'data' => $product_id
+        ], 201);
+    }
+    public function Store(Request $request){
+      
+        $product_id = Product::insertGetId([
+         
+            'product_name' => $request->product_name,
+        'product_thumbnail' => $uploadPath,
             'long_disc' => $request->long_disc,
             
             'created_at' => Carbon::now(),
